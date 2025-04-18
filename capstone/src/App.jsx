@@ -23,6 +23,7 @@ function App() {
     document.head.appendChild(script);
   }, []);
 
+  // 건물 출입구 마커 표시 관련 코드
   useEffect(() => {
     if (!map) return;
 
@@ -39,6 +40,29 @@ function App() {
       })
       .catch((error) => {
         console.error("Error loading gate points:", error);
+      });
+  }, [map]);
+
+  // 도로 중심 마커 표시 관련 코드 
+  useEffect(() => {
+    if (!map) return;
+
+    fetch("http://localhost:8080/api/road-centers")
+      .then((res) => res.json())
+      .then((data) => {
+        data.forEach((center) => {
+          new window.google.maps.Marker({
+            position: { lat: center.latitude, lng: center.longitude },
+            map: map,
+            title: `도로 중심점 ${center.id}`,
+            icon: {
+              url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // 건물 출입구랑 안겹치게 파란 마커 사용 
+            },
+          });
+        });
+      })
+      .catch((error) => {
+        console.error("Error loading road centers:", error);
       });
   }, [map]);
 
