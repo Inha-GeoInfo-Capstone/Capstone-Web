@@ -60,6 +60,20 @@ function App() {
             },
           });
         });
+
+        const lineCoordinates = data.map((center) => ({
+          lat: center.latitude,
+          lng: center.longitude,
+        }));
+
+        const polyline = new window.google.maps.Polyline({
+          path: lineCoordinates,
+          geodesic: true,
+          strokeColor: "#0000FF", 
+          strokeOpacity: 0.8,
+          strokeWeight: 4,
+        });
+        polyline.setMap(map);
       })
       .catch((error) => {
         console.error("Error loading road centers:", error);
