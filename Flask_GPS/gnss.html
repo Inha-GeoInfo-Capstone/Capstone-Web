@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 GNSS 지도</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        #map { height: 500px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>실시간 GNSS 지도</h1>
+    <div id="map"></div>
+
+    <script>
+        // 1️⃣ Leaflet을 사용하여 지도 생성
+        var map = L.map('map').setView([37.5665, 126.9780], 13);
+
+        // 2️⃣ OpenStreetMap 타일 추가
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3️⃣ 추정된 GPS 좌표를 사용해 마커 생성
+        var marker;
+
+        function  getData() {
+            fetch("https://inhamap.n-e.kr/gps",{
+                method: "GET"
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 추정된 좌표가 서버에서 받아졌을 때
+                if (data.status === "success") {
+                    let Lat = data.latitude;
+                    let Lon = data.longitude;
+                    let snr = data.snr;
+
+                    console.log("📌 GPS 데이터:", Lat, Lon, snr);
+
+                    // 6️⃣ 추정된 GPS 좌표로 마커 위치 업데이트
+                    updateMarker(Lat, Lon, snr);
+                }
+                else{
+                    updateLocation();
+                }
+            })
+            .catch(error => console.error("❌ 에러 발생:", error));  
+        }
+
+        function updateMarker(lat, lon,snr) {
+            let markerColor = getColorBySNR(snr);
+            if (marker) {
+                // 기존 마커가 있으면 위치 업데이트
+                marker.setLatLng([lat, lon]).setIcon(createMarkerIcon(markerColor));
+            } else {
+                // 없으면 새로운 마커 추가
+                marker = L.marker([lat, lon], { icon: createMarkerIcon(markerColor) }).addTo(map);
+            }
+            map.setView([lat, lon], 13);  // 지도 중심을 추정된 좌표로 설정
+        }
+
+        function getColorBySNR(snr) {
+            if (snr >= 40) return "green";
+            if (snr >= 30) return "orange";
+            if (snr >= 20) return "red";
+        }
+
+        // SNR에 맞는 색상의 마커 아이콘 생성
+        function createMarkerIcon(color) {
+            return L.divIcon({
+                className: 'custom-icon',
+                html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%;"></div>`,
+                iconSize: [20, 20]
+            });
+        }
+
+        function updateLocation() { // 컴퓨터로 접속했을때 (서버에서 받을 위경도가 없을때)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    let lat = position.coords.latitude;
+                    let lon = position.coords.longitude;
+                    let alt = position.coords.altitude || 0;  // 고도 값 받기, 없으면 0으로 설정
+                    
+                    console.log("📌 현재 위치:", lat, lon, alt);
+                    updateMarker(lat,lon);
+                });
+            } else {
+                alert("이 브라우저는 GPS를 지원하지 않습니다.");
+            }
+        }
+
+        setInterval(updateLocation, 3000);
+    </script>
+</body>
+</html>
