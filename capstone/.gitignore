@@ -61,3 +61,17 @@ application.properties
 application.yml
 application-dev.properties
 application-prod.properties
+
+# Flask
+Flask_GPS/**/*.pem
+Flask_GPS/*.pem
+Flask_GPS/__pycache__/
+Flask_GPS/venv/
+Flask_GPS/.venv/
+Flask_GPS/*.pyc
+
+# Python 공통
+*.pyc
+*.db
+instance/
+*.sqlite3
