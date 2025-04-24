@@ -56,27 +56,37 @@ function App() {
             map: map,
             title: `도로 중심점 ${center.id}`,
             icon: {
-              url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png", // 건물 출입구랑 안겹치게 파란 마커 사용 
+              url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
             },
           });
         });
-
-        const lineCoordinates = data.map((center) => ({
-          lat: center.latitude,
-          lng: center.longitude,
-        }));
-
-        const polyline = new window.google.maps.Polyline({
-          path: lineCoordinates,
-          geodesic: true,
-          strokeColor: "#0000FF", 
-          strokeOpacity: 0.8,
-          strokeWeight: 4,
-        });
-        polyline.setMap(map);
       })
       .catch((error) => {
         console.error("Error loading road centers:", error);
+      });
+
+    // 원하는 선만 표시하는 로직 
+    fetch("http://localhost:8080/api/road-links")
+      .then((res) => res.json())
+      .then((links) => {
+        links.forEach((link) => {
+          const path = [
+            { lat: link.from.latitude, lng: link.from.longitude },
+            { lat: link.to.latitude, lng: link.to.longitude },
+          ];
+
+          new window.google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: "#00BFFF",
+            strokeOpacity: 1.0,
+            strokeWeight: 4,
+            map: map,
+          });
+        });
+      })
+      .catch((error) => {
+        console.error("Error loading road links:", error);
       });
   }, [map]);
 
