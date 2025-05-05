@@ -17,6 +17,7 @@
     <div id="map"></div>
 
     <script>
+        const FLASK_URL = "https://127.0.0.1:443/gps";
         // 1️⃣ Leaflet을 사용하여 지도 생성
         var map = L.map('map').setView([37.5665, 126.9780], 13);
 
@@ -28,40 +29,74 @@
         // 3️⃣ 추정된 GPS 좌표를 사용해 마커 생성
         var marker;
 
-        function  getData() {
-            fetch("https://inhamap.n-e.kr/gps",{
-                method: "GET"
-            })
+        function getData() {
+            fetch(FLASK_URL, { method: "GET" })
             .then(response => response.json())
             .then(data => {
-                // 추정된 좌표가 서버에서 받아졌을 때
                 if (data.status === "success") {
-                    let Lat = data.latitude;
-                    let Lon = data.longitude;
+                    let lat = data.latitude;
+                    let lon = data.longitude;
                     let snr = data.snr;
-
-                    console.log("📌 GPS 데이터:", Lat, Lon, snr);
-
-                    // 6️⃣ 추정된 GPS 좌표로 마커 위치 업데이트
-                    updateMarker(Lat, Lon, snr);
-                }
-                else{
-                    updateLocation();
+                    console.log("📡 Flask에서 수신한 위치:", lat, lon, snr);
+                    updateMarker(lat, lon, snr);
+                } else {
+                    console.warn("⚠️ 서버 위치 없음 → fallback");
+                    updateLocation();  // 브라우저 GPS fallback
                 }
             })
-            .catch(error => console.error("❌ 에러 발생:", error));  
+            .catch(error => {
+                console.error("❌ Flask 서버 요청 실패:", error);
+                updateLocation();  
+            });
         }
 
-        function updateMarker(lat, lon,snr) {
-            let markerColor = getColorBySNR(snr);
-            if (marker) {
-                // 기존 마커가 있으면 위치 업데이트
-                marker.setLatLng([lat, lon]).setIcon(createMarkerIcon(markerColor));
+        function updateLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const snr = 25;  // 기본값 
+                    console.log("📍 브라우저 위치:", lat, lon);
+                    updateMarker(lat, lon, snr);
+        
+                    // 서버로 현재 위치 전송 (실시간 전송)
+                    fetch(FLASK_URL, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            latitude: lat,
+                            longitude: lon,
+                            snr: snr
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log("✅ 서버에 위치 전송 성공:", data);
+                    })
+                    .catch(error => {
+                        console.error("❌ 서버 전송 실패:", error);
+                    });
+        
+                }, error => {
+                    console.warn("❗ 위치 접근 실패:", error);
+                });
             } else {
-                // 없으면 새로운 마커 추가
-                marker = L.marker([lat, lon], { icon: createMarkerIcon(markerColor) }).addTo(map);
+                alert("이 브라우저는 GPS를 지원하지 않습니다.");
             }
-            map.setView([lat, lon], 13);  // 지도 중심을 추정된 좌표로 설정
+        }
+
+        function updateMarker(lat, lon, snr) {
+            let color = getColorBySNR(snr);
+            if (marker) {
+                marker.setLatLng([lat, lon]).setIcon(createMarkerIcon(color));
+            } else {
+                marker = L.marker([lat, lon], {
+                    icon: createMarkerIcon(color)
+                }).addTo(map);
+            }
+            map.setView([lat, lon], 13);
         }
 
         function getColorBySNR(snr) {
@@ -79,22 +114,7 @@
             });
         }
 
-        function updateLocation() { // 컴퓨터로 접속했을때 (서버에서 받을 위경도가 없을때)
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    let lat = position.coords.latitude;
-                    let lon = position.coords.longitude;
-                    let alt = position.coords.altitude || 0;  // 고도 값 받기, 없으면 0으로 설정
-                    
-                    console.log("📌 현재 위치:", lat, lon, alt);
-                    updateMarker(lat,lon);
-                });
-            } else {
-                alert("이 브라우저는 GPS를 지원하지 않습니다.");
-            }
-        }
-
-        setInterval(updateLocation, 3000);
+        setInterval(getData, 3000);
     </script>
 </body>
 </html>
