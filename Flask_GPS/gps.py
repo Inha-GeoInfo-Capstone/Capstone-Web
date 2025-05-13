@@ -5,8 +5,8 @@ app = Flask(__name__)
 CORS(app)
 
 # 인증서 파일 경로
-CERT_FILE = 'certs/inhamap.n-e.kr-crt.pem'
-KEY_FILE = 'certs/inhamap.n-e.kr-key.pem'
+CERT_FILE = '/etc/letsencrypt/live/inhacapstone.p-e.kr/fullchain.pem'
+KEY_FILE = '/etc/letsencrypt/live/inhacapstone.p-e.kr/privkey.pem'
 
 gps_data = {"latitude": None, "longitude": None, "snr": None}
 
