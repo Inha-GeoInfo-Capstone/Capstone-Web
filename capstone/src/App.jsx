@@ -90,6 +90,37 @@ function App() {
       });
   }, [map]);
 
+// 최단 경로를 선 표시하는 로직 추가 
+  useEffect(() => {
+    if (!map) return;
+
+    // 우선 테스트용으로 현재 위치와 도착지 15번 노드를 통해 잘 나오는지 확인 
+    const currentLat = 37.451;
+    const currentLon = 126.653;
+    const destinationId = 15;
+
+    fetch(`http://localhost:8080/api/navigation/shortest-path?currentLat=${currentLat}&currentLon=${currentLon}&destinationId=${destinationId}`)
+      .then((res) => res.json())
+      .then((pathCoords) => {
+        const polylinePath = pathCoords.map(coord => ({
+          lat: coord.lat,
+          lng: coord.lng,
+        }));
+
+        new window.google.maps.Polyline({
+          path: polylinePath,
+          geodesic: true,
+          strokeColor: "#FF0000", // 최단경로는 빨간색
+          strokeOpacity: 1.0,
+          strokeWeight: 5,
+          map: map,
+        });
+      })
+      .catch((err) => {
+        console.error("❌ 최단 경로 호출 실패", err);
+      });
+  }, [map]);
+
   return (
     <div>
       <h1>인하대학교 출입구 지도</h1>
