@@ -8,13 +8,15 @@ function App() {
   const [centerMarkers, setCenterMarkers] = useState([]);
   const [roadPolylines, setRoadPolylines] = useState([]);
   const [pathPolyline, setPathPolyline] = useState(null);
-
-  // 현재 위치 받아오는거 관련 
-  const [currentLocation, setCurrentLocation] = useState(null);
-  const currentMarkerRef = useRef(null);
   const [nearestPathPolyline, setNearestPathPolyline] = useState(null);
 
-  // Google Maps API 로딩
+  // 현재 위치 관련 상태
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const currentMarkerRef = useRef(null);
+
+  
+  const [selectedDestinationId, setSelectedDestinationId] = useState(15);
+
   useEffect(() => {
     if (window.google && window.google.maps) {
       const center = { lat: 37.45, lng: 126.6535 };
@@ -47,24 +49,40 @@ function App() {
   useEffect(() => {
     if (!map) return;
 
-    gateMarkers.forEach(marker => marker.setMap(null)); // 이전 마커 제거
+    gateMarkers.forEach(marker => marker.setMap(null));
 
     fetch("http://localhost:8080/api/gate-points")
       .then((res) => res.json())
       .then((data) => {
-        const markers = data.map((point) => new window.google.maps.Marker({
-          position: { lat: point.latitude, lng: point.longitude },
-          map: map,
-          title: `Gate ${point.id}`,
-        }));
-        setGateMarkers(markers); // 새 마커 저장
+        const markers = data.map((point) => {
+          const marker = new window.google.maps.Marker({
+            position: { lat: point.latitude, lng: point.longitude },
+            map: map,
+            title: `Gate ${point.id}`,
+          });
+
+          marker.addListener("click", () => {
+          fetch(`http://localhost:8080/api/navigation/gate-to-road-center?gateId=${point.id}`)
+            .then(res => res.json())
+            .then(centerId => {
+              console.log("💡 도로 중심 ID 수신:", centerId);
+              setSelectedDestinationId(Number(centerId)); 
+            })
+            .catch(err => console.error("🚨 게이트 매핑 실패", err));
+        });
+
+        return marker;
+        });
+
+        setGateMarkers(markers);
       })
       .catch((error) => {
         console.error("Error loading gate points:", error);
       });
   }, [map]);
 
-  // 도로 중심 마커 + 링크 라인
+  // 도로 중심점 마커 + 도로 링크 선
+  /*
   useEffect(() => {
     if (!map) return;
 
@@ -102,18 +120,79 @@ function App() {
         setRoadPolylines(polylines);
       });
   }, [map]);
+  */
 
-  // 최단 경로 그리기
+  // 현재 위치 마커 주기적 갱신
   useEffect(() => {
     if (!map) return;
 
+    const interval = setInterval(() => {
+      fetch("http://localhost:8080/api/navigation/current-location")
+        .then((res) => res.json())
+        .then((data) => {
+          const coords = { lat: data.latitude, lng: data.longitude };
+          setCurrentLocation(coords);
+
+          if (!currentMarkerRef.current) {
+            currentMarkerRef.current = new window.google.maps.Marker({
+              position: coords,
+              map: map,
+              title: "실시간 내 위치 (Flask)",
+              icon: {
+                path: window.google.maps.SymbolPath.CIRCLE,
+                scale: 6,
+                fillColor: "#00F",
+                fillOpacity: 0.8,
+                strokeWeight: 2,
+                strokeColor: "#FFF",
+              },
+            });
+          } else {
+            currentMarkerRef.current.setPosition(coords);
+          }
+        })
+        .catch((err) => console.error("📡 위치 정보 수신 실패", err));
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [map]);
+
+  // 현재 위치 → 가장 가까운 도로 중심점 연결선 
+  useEffect(() => {
+    if (!map || !currentLocation) return;
+
+    fetch(`http://localhost:8080/api/navigation/nearest-connection`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!Array.isArray(data) || data.length < 2) return;
+
+        if (nearestPathPolyline) nearestPathPolyline.setMap(null);
+
+        const path = data.map(p => ({ lat: p.lat, lng: p.lng }));
+
+        const newLine = new window.google.maps.Polyline({
+          path,
+          geodesic: true,
+          strokeColor: "#FFA500",
+          strokeOpacity: 1.0,
+          strokeWeight: 4,
+          map: map,
+        });
+
+        setNearestPathPolyline(newLine);
+      })
+      .catch(err => console.error("🛑 도로 중심 연결 실패", err));
+  }, [map, currentLocation]);
+
+  // 최단경로 (현재 위치 → 선택한 목적지까지)
+  useEffect(() => {
+    if (!map || !selectedDestinationId) return;
+
     if (pathPolyline) {
-      pathPolyline.setMap(null); // 이전 경로 제거
+      pathPolyline.setMap(null);
     }
 
-    const destinationId = 15;
-
-    fetch(`http://localhost:8080/api/navigation/shortest-path?destinationId=${destinationId}`)
+    fetch(`http://localhost:8080/api/navigation/shortest-path-from-current?destinationId=${selectedDestinationId}`)
       .then((res) => {
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
         return res.json();
@@ -142,67 +221,7 @@ function App() {
       .catch((err) => {
         console.error("❌ 최단 경로 호출 실패", err);
       });
-  }, [map]);
-
-useEffect(() => {
-  if (!map) return;
-
-  const interval = setInterval(() => {
-    fetch("http://localhost:8080/api/navigation/current-location")
-      .then((res) => res.json())
-      .then((data) => {
-        const coords = { lat: data.latitude, lng: data.longitude };
-        setCurrentLocation(coords);
-
-        if (!currentMarkerRef.current) {
-          currentMarkerRef.current = new window.google.maps.Marker({
-            position: coords,
-            map: map,
-            title: "실시간 내 위치 (Flask)",
-            icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              scale: 6,
-              fillColor: "#00F",
-              fillOpacity: 0.8,
-              strokeWeight: 2,
-              strokeColor: "#FFF",
-            },
-          });
-        } else {
-          currentMarkerRef.current.setPosition(coords);
-        }
-      })
-      .catch((err) => console.error("📡 위치 정보 수신 실패", err));
-  }, 3000);
-
-  return () => clearInterval(interval);
-}, [map]);
-
-useEffect(() => {
-  if (!map || !currentLocation) return;
-
-  fetch(`http://localhost:8080/api/navigation/nearest-connection`)
-    .then((res) => res.json())
-    .then((data) => {
-      if (!Array.isArray(data) || data.length < 2) return;
-
-      if (nearestPathPolyline) nearestPathPolyline.setMap(null); // 이전 선 제거
-
-      const path = data.map(p => ({ lat: p.lat, lng: p.lng }));
-
-      const newLine = new window.google.maps.Polyline({
-        path,
-        geodesic: true,
-        strokeColor: "#FFA500", // 주황색
-        strokeOpacity: 1.0,
-        strokeWeight: 4,
-        map: map,
-      });
-
-      setNearestPathPolyline(newLine); // 상태 저장
-    })
-    .catch(err => console.error("🛑 도로 중심 연결 실패", err));
-}, [map, currentLocation]);
+  }, [map, selectedDestinationId]);
 
   return (
     <div>
