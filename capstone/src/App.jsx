@@ -139,6 +139,41 @@ function App() {
       });
   }, [map]);
 
+useEffect(() => {
+  if (!map) return;
+
+  const interval = setInterval(() => {
+    fetch("http://localhost:8080/api/navigation/current-location")
+      .then((res) => res.json())
+      .then((data) => {
+        const coords = { lat: data.latitude, lng: data.longitude };
+        setCurrentLocation(coords);
+
+        if (!currentMarkerRef.current) {
+          currentMarkerRef.current = new window.google.maps.Marker({
+            position: coords,
+            map: map,
+            title: "실시간 내 위치 (Flask)",
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 6,
+              fillColor: "#00F",
+              fillOpacity: 0.8,
+              strokeWeight: 2,
+              strokeColor: "#FFF",
+            },
+          });
+        } else {
+          currentMarkerRef.current.setPosition(coords);
+        }
+      })
+      .catch((err) => console.error("📡 위치 정보 수신 실패", err));
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, [map]);
+
+
   return (
     <div>
       <h1>인하대학교 출입구 지도</h1>
