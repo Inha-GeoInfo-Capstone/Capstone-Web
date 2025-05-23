@@ -12,6 +12,7 @@ function App() {
   // 현재 위치 받아오는거 관련 
   const [currentLocation, setCurrentLocation] = useState(null);
   const currentMarkerRef = useRef(null);
+  const [nearestPathPolyline, setNearestPathPolyline] = useState(null);
 
   // Google Maps API 로딩
   useEffect(() => {
@@ -177,6 +178,31 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [map]);
 
+useEffect(() => {
+  if (!map || !currentLocation) return;
+
+  fetch(`http://localhost:8080/api/navigation/nearest-connection`)
+    .then((res) => res.json())
+    .then((data) => {
+      if (!Array.isArray(data) || data.length < 2) return;
+
+      if (nearestPathPolyline) nearestPathPolyline.setMap(null); // 이전 선 제거
+
+      const path = data.map(p => ({ lat: p.lat, lng: p.lng }));
+
+      const newLine = new window.google.maps.Polyline({
+        path,
+        geodesic: true,
+        strokeColor: "#FFA500", // 주황색
+        strokeOpacity: 1.0,
+        strokeWeight: 4,
+        map: map,
+      });
+
+      setNearestPathPolyline(newLine); // 상태 저장
+    })
+    .catch(err => console.error("🛑 도로 중심 연결 실패", err));
+}, [map, currentLocation]);
 
   return (
     <div>
