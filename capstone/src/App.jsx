@@ -9,6 +9,10 @@ function App() {
   const [roadPolylines, setRoadPolylines] = useState([]);
   const [pathPolyline, setPathPolyline] = useState(null);
 
+  // 현재 위치 받아오는거 관련 
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const currentMarkerRef = useRef(null);
+
   // Google Maps API 로딩
   useEffect(() => {
     if (window.google && window.google.maps) {
