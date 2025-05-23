@@ -95,11 +95,9 @@ function App() {
     if (!map) return;
 
     // 우선 테스트용으로 현재 위치와 도착지 15번 노드를 통해 잘 나오는지 확인 
-    const currentLat = 37.451;
-    const currentLon = 126.653;
     const destinationId = 15;
 
-    fetch(`http://localhost:8080/api/navigation/shortest-path?currentLat=${currentLat}&currentLon=${currentLon}&destinationId=${destinationId}`)
+    fetch(`http://localhost:8080/api/navigation/shortest-path?destinationId=${destinationId}`)
       .then((res) => res.json())
       .then((pathCoords) => {
         const polylinePath = pathCoords.map(coord => ({
