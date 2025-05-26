@@ -15,7 +15,7 @@ function MapContainer() {
   const currentMarkerRef = useRef(null);
 
   
-  const [selectedDestinationId, setSelectedDestinationId] = useState(15);
+  const [selectedDestinationId, setSelectedDestinationId] = useState(null);
 
   useEffect(() => {
     if (window.google && window.google.maps) {
@@ -186,7 +186,7 @@ function MapContainer() {
 
   // 최단경로 (현재 위치 → 선택한 목적지까지)
   useEffect(() => {
-    if (!map || !selectedDestinationId) return;
+    if (!map || !selectedDestinationId || !currentLocation) return;
 
     if (pathPolyline) {
       pathPolyline.setMap(null);
@@ -221,7 +221,7 @@ function MapContainer() {
       .catch((err) => {
         console.error("❌ 최단 경로 호출 실패", err);
       });
-  }, [map, selectedDestinationId]);
+  }, [map, selectedDestinationId,currentLocation]);
 
   return (
     <div ref={mapRef} className="map-container"></div>
