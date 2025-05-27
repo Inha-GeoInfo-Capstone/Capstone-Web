@@ -63,3 +63,22 @@ html, body, #root {
   height: 100%;
   width: 100%;
 }
+
+.suggestions-box {
+  background: white;
+  border: 1px solid #ccc;
+  max-height: 150px;
+  overflow-y: auto;
+  position: absolute;
+  width: calc(100% - 20px);
+  z-index: 1000;
+}
+
+.suggestion-item {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.suggestion-item:hover {
+  background: #f0f0f0;
+}
