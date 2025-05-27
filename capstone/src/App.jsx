@@ -8,9 +8,9 @@ function App() {
   const [selectedDestinationId, setSelectedDestinationId] = useState(null);
   return (
     <div className="app-container">
-      <SearchPanel setSelectedDestinationId={setSelectedDestinationId} />
-      <MapContainer selectedDestinationId={selectedDestinationId} />
-    </div>
+    <SearchPanel setSelectedDestinationId={setSelectedDestinationId} />
+    <MapContainer selectedDestinationId={selectedDestinationId} setSelectedDestinationId={setSelectedDestinationId} />
+  </div>
   );
 }
 

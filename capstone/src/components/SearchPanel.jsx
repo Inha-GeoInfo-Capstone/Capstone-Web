@@ -1,7 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
 
 function SearchPanel({ setSelectedDestinationId }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setSuggestions([]);
+      return;
+    }
+
+    fetch(`http://localhost:8080/api/navigation/gate-name-suggestions?query=${encodeURIComponent(searchQuery)}`)
+      .then((res) => res.json())
+      .then((data) => setSuggestions(data))
+      .catch(() => setSuggestions([]));
+  }, [searchQuery]);
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
@@ -22,6 +36,7 @@ function SearchPanel({ setSelectedDestinationId }) {
       .then(centerId => {
         console.log("목적지 도로 중심 ID: ", centerId);
         setSelectedDestinationId(centerId); 
+        setSuggestions([]);
       })
       .catch(err => {
         console.error("검색 실패: ", err);
@@ -30,7 +45,7 @@ function SearchPanel({ setSelectedDestinationId }) {
   };
 
   return (
-    <div className="search-panel">
+    <div className="search-panel" style={{ position: "relative" }}>
       <h2>🔍 목적지 검색</h2>
       <input
         type="text"
@@ -38,7 +53,41 @@ function SearchPanel({ setSelectedDestinationId }) {
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
       />
-      <button onClick={handleSearch}>검색</button>
+      <button onClick={() => handleSearch()}>검색</button>
+      {suggestions.length > 0 && (
+        <div className="suggestions-box" style={{
+          position: "absolute",
+          top: "100%",
+          left: 0,
+          backgroundColor: "#fff",
+          border: "1px solid #ccc",
+          width: "100%",
+          maxHeight: "200px",
+          overflowY: "auto",
+          zIndex: 1000
+        }}>
+          {suggestions.map((name, idx) => (
+            <div
+              key={idx}
+              className="suggestion-item"
+              onClick={() => {
+                setSearchQuery(name);    
+                setSuggestions([]);       
+                setTimeout(() => handleSearch(), 0);      
+              }}
+              style={{
+                padding: "8px",
+                cursor: "pointer",
+                borderBottom: "1px solid #eee"
+              }}
+              onMouseEnter={(e) => (e.target.style.backgroundColor = "#f0f0f0")}
+              onMouseLeave={(e) => (e.target.style.backgroundColor = "white")}
+            >
+              {name}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

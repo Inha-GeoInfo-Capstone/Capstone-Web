@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-function MapContainer({ selectedDestinationId }) {
+function MapContainer({ selectedDestinationId, setSelectedDestinationId }) {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
 
@@ -9,6 +9,7 @@ function MapContainer({ selectedDestinationId }) {
   const [roadPolylines, setRoadPolylines] = useState([]);
   const [pathPolyline, setPathPolyline] = useState(null);
   const [nearestPathPolyline, setNearestPathPolyline] = useState(null);
+  const [finalGateLine, setFinalGateLine] = useState(null);
 
   // 현재 위치 관련 상태
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -187,16 +188,11 @@ function MapContainer({ selectedDestinationId }) {
   // 최단경로 (현재 위치 → 선택한 목적지까지)
   useEffect(() => {
     if (!map || !selectedDestinationId || !currentLocation) return;
-
-    if (pathPolyline) {
-      pathPolyline.setMap(null);
-    }
+    if (pathPolyline) pathPolyline.setMap(null);
+    if (finalGateLine) finalGateLine.setMap(null);
 
     fetch(`http://localhost:8080/api/navigation/shortest-path-from-current?destinationId=${selectedDestinationId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((pathCoords) => {
         if (!Array.isArray(pathCoords) || pathCoords.length === 0) {
           throw new Error("❗ 최단 경로 응답이 올바르지 않음");
@@ -217,11 +213,28 @@ function MapContainer({ selectedDestinationId }) {
         });
 
         setPathPolyline(newPolyline);
+
+        const lastPoint = polylinePath[polylinePath.length - 1];
+
+        return fetch(`http://localhost:8080/api/navigation/destination-to-nearest-gate?centerId=${selectedDestinationId}`)
+          .then(res => res.json())
+          .then(gateCoords => {
+            const finalLine = new window.google.maps.Polyline({
+              path: [lastPoint, { lat: gateCoords.lat, lng: gateCoords.lng }],
+              geodesic: true,
+              strokeColor: "#8A2BE2",
+              strokeOpacity: 1.0,
+              strokeWeight: 4,
+              map: map,
+            });
+
+            setFinalGateLine(finalLine);
+          });
       })
       .catch((err) => {
-        console.error("❌ 최단 경로 호출 실패", err);
+        console.error("❌ 최단 경로 + 출입구 연결 실패", err);
       });
-  }, [map, selectedDestinationId,currentLocation]);
+  }, [map, selectedDestinationId, currentLocation]);
 
   return (
     <div ref={mapRef} className="map-container"></div>
