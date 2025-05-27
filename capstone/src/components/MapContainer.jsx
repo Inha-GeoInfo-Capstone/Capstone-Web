@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-function MapContainer() {
+function MapContainer({ selectedDestinationId }) {
   const mapRef = useRef(null);
   const [map, setMap] = useState(null);
 
@@ -15,7 +15,7 @@ function MapContainer() {
   const currentMarkerRef = useRef(null);
 
   
-  const [selectedDestinationId, setSelectedDestinationId] = useState(null);
+  // const [selectedDestinationId, setSelectedDestinationId] = useState(null);
 
   useEffect(() => {
     if (window.google && window.google.maps) {
