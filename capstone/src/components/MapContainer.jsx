@@ -47,6 +47,7 @@ function MapContainer({ selectedDestinationId, setSelectedDestinationId }) {
   }, []);
 
   // 건물 출입구 마커
+  /*
   useEffect(() => {
     if (!map) return;
 
@@ -81,7 +82,7 @@ function MapContainer({ selectedDestinationId, setSelectedDestinationId }) {
         console.error("Error loading gate points:", error);
       });
   }, [map]);
-
+  */
   // 도로 중심점 마커 + 도로 링크 선
   /*
   useEffect(() => {
@@ -159,6 +160,7 @@ function MapContainer({ selectedDestinationId, setSelectedDestinationId }) {
   }, [map]);
 
   // 현재 위치 → 가장 가까운 도로 중심점 연결선 
+  /*
   useEffect(() => {
     if (!map || !currentLocation) return;
 
@@ -184,7 +186,7 @@ function MapContainer({ selectedDestinationId, setSelectedDestinationId }) {
       })
       .catch(err => console.error("🛑 도로 중심 연결 실패", err));
   }, [map, currentLocation]);
-
+  */
   // 최단경로 (현재 위치 → 선택한 목적지까지)
   useEffect(() => {
     if (!map || !selectedDestinationId || !currentLocation) return;
@@ -202,7 +204,8 @@ function MapContainer({ selectedDestinationId, setSelectedDestinationId }) {
           lat: coord.lat,
           lng: coord.lng,
         }));
-
+        
+        
         const newPolyline = new window.google.maps.Polyline({
           path: polylinePath,
           geodesic: true,
@@ -211,7 +214,7 @@ function MapContainer({ selectedDestinationId, setSelectedDestinationId }) {
           strokeWeight: 5,
           map: map,
         });
-
+        
         setPathPolyline(newPolyline);
 
         const lastPoint = polylinePath[polylinePath.length - 1];
